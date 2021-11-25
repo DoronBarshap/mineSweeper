@@ -107,17 +107,17 @@ function cellClicked(elCell, i, j) {
         if (gGame.lives === 0) gameOver('lose')
         renderLives()
         gBoard[i][j].isShown = true
+
         renderCell(elCell, i, j)
         console.log('elCell (from cellClicked): ',elCell)
         gGame.shownCount++
-        if(gGame.shownCount===gBoard.length**2) gameOver('win')
         // exposeAllBoard()
-    } else if (!gBoard[i][j].minesAroundCount){ // if the cell has 0 negs show negs
+    } else {
         //model
-        gBoard[i][j].isShown = true      
+        // gBoard[i][j].isShown = true
         gGame.shownCount++
         if(gGame.shownCount===gBoard.length**2) gameOver('win')
-        showNegs(elCell, i, j)
+
         //dom
         renderCell(elCell, i, j)
         if (!gBoard[i][j].minesAroundCount) showNegs(elCell, i, j)
@@ -183,8 +183,8 @@ function showNegs(elCell, row, col) {
         for (var j = col - 1; j <= col + 1; j++) {
             if (j < 0 || j > gBoard[i].length - 1) continue;
             gBoard[i][j].isShown = true
-            console.log('isHown around the cel are exposed: ')
-            
+            var elCell = document.querySelector('td.has')
+            renderCell(elCell, row, col)
         }
     }
 }
