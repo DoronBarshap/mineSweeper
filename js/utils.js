@@ -132,27 +132,14 @@ function shuffle(items) {
 }
 
 
-// Get an array of numbers (from 0 to num, ordered)                *** being used ****
-function getNumsArray(num) {
-    var nums = []
-    for (var i = 0; i <= num; i++) {
-        nums.push(i);
-    }
-    return nums
-}
+
 
 // draws the last number / element from an array 
 function drawNum(arr) {
     return arr.pop();
 }
 
-// Draw a random number of an array - and delete it from the array.     *** being used ****
-function drawRandNum(array) {
-    var idx = getRandomInt(0, array.length)
-    var num = array[idx]
-    array.splice(idx, 1)
-    return num
-}
+
 
 // Get random ID
 function getRandomId(idLength) {
@@ -213,17 +200,7 @@ function createSquareMat(matrixLength) {
 // }
 
 
-//Copy mat
-function copyMat(mat) {
-    var newMat = [];
-    for (var i = 0; i < mat.length; i++) {
-        newMat[i] = [];
-        for (var j = 0; j < mat[0].length; j++) {
-            newMat[i][j] = mat[i][j];
-        }
-    }
-    return newMat;
-}
+
 
 // get Random Empty Cell in a matrix (returns an object {i,j})
 function getRandomEmptyCell(mat) {
