@@ -1,8 +1,11 @@
 'use strict'
 
 // Global variables
-var gStages = []
 
+var gHint = false
+const WORRIEDSMILEY = `worriedSmiley.jpg`
+const SADLEY = `sadley.jpg`
+const SMILEY = `simley.jpg`
 const MARKED = `flag.jpg`
 const MINE = `landMine.jpg`
 const EMPTY = ''
@@ -11,14 +14,16 @@ var gTimerInterval
 var gBoard = []
 var gLevel = {
     SIZE: 4,
-    MINES: 2
+    MINES: 3
 }
 var gGame = {
     isOn: false,
     shownCount: 0,
     markedCount: 0,
     secsPassed: 0,
-    lives: 3
+    lives: 3,
+    safeClicks: 3,
+    hints: 3
 }
 
 // Functions 
@@ -26,12 +31,11 @@ var gGame = {
 function initGame() {
     gBoard = buildBoard(gLevel.SIZE) //basic board with objects inside each cell
     positionMines()         // randomly puts mines in some of the cells object (cell.isMine = true)
-    console.table('gBoard.table', gBoard)
-
     resetGame()           // zeroes all the global variables
     updateBoard()          // updates the model matrix about neighboring mines
     renderBoard(gBoard)    // renders covered board
 }
+
 // Create square mat
 function buildBoard(size) {
     var board = []
@@ -48,6 +52,7 @@ function buildBoard(size) {
     }
     return board
 }
+
 // puts mines randomly in the board
 function positionMines() {
     var emptyCells = getNumsArray(gBoard.length ** 2 - 1)
@@ -59,6 +64,7 @@ function positionMines() {
         gBoard[posI][posJ].isMine = true
     }
 }
+
 //UPDATE THE MATRIX OF THE MODEL WITH HOW MANY MINES ARE AROUND EACH CELL
 function updateBoard() {
     for (var i = 0; i < gBoard.length; i++) {
@@ -67,6 +73,7 @@ function updateBoard() {
         }
     }
 }
+
 // Count Neighbors - how many mines are around the cell
 function countNegs(row, col, gBoard) {
     var negsCount = 0;
@@ -102,10 +109,10 @@ function renderBoard(board) {
             if (cell.isMarked) { // if it's marked, render a flag and that's all.
                 image = `<img src="img/${MARKED}" >`
             }
-
             var cellState = (cell.isMine) ? 'mine ' : ''
             cellState += (cell.isShown) ? 'shown ' : ''
             cellState += (cell.isMarked) ? 'marked ' : ''
+            cellState += (cell.hasOwnProperty('flash')) ? 'flash ' : ''
             strHTML += `
             <td data-i=${i} data-j=${j} onclick="cellClicked(this, ${i}, ${j})" class="${cellState}">${image}</td>`
         }
@@ -120,10 +127,12 @@ function resetGame() {
     gGame.markedCount = 0
     gGame.shownCount = 0
     gGame.lives = 3
+    gGame.safeClicks = 3
+    gGame.safeClicks = 3
+    gGame.hints = 3
+    gHint = false
     renderLives()
     showFlagsLeft()
-
-    gStages = []
 }
 
 // left click event (exposing the cell)
@@ -134,16 +143,22 @@ function cellClicked(elCell, i, j) {
         startTimer()
     }
     if (gBoard[i][j].isShown || gBoard[i][j].isMarked) return // if it is already marked or shown nothing to do here
+    if (gHint) { // if the hint state is ON show the cell and negs for few milisecs
+        showHint(i, j, true)
+        gGame.hints--
+        setTimeout(showHint, 1000, i, j, false)
+        gHint = false
+        return
+    }
     gBoard[i][j].isShown = true
     gGame.shownCount++
     if ((gGame.shownCount === 1) && gBoard[i][j].isMine) { // if it's the first click of the 
-        console.log('fist left click: ')                   // game (not counting for flags) 
+        // game (not counting for flags) 
         // and if there is a mine move it
         for (var k = 0; k < gBoard.length; k++) {
             for (var l = 0; l < gBoard.length; l++) {
                 if (!(gBoard[k][l].isMine) && !(gBoard[k][l].isShown) &&
                     isFarEnough(k, l, i, j)) {
-                    console.log('im in the while loop: ')
                     gBoard[k][l].isMine = true
                     gBoard[i][j].isMine = false
                     updateBoard()
@@ -155,26 +170,27 @@ function cellClicked(elCell, i, j) {
     }
     if (gBoard[i][j].isMine) { //if it is a mine
         gGame.lives--
+        playSound('media/explosion.mp3')
         if (gGame.lives === 0) {
             showMines()
             gameOver('lose')
         }
         renderLives()
-        gStages.push(copyMat(gBoard))
+
         renderBoard(gBoard)
     } else if (gBoard[i][j].minesAroundCount) {     //if there are neighbours  
-        gStages.push(copyMat(gBoard))
+
         renderBoard(gBoard)
         isGameOver()
     } else if (!gBoard[i][j].minesAroundCount) { // if it doesn't have neighbours  
-        gStages.push(copyMat(gBoard))
+
         renderBoard(gBoard)
         showNegs(i, j)
         isGameOver()
     }
-
     if (gGame.shownCount === gBoard.length ** 2) gameOver('win')
 }
+
 // checks that the vertical or horizntal distance is bigger than 1 cell, used to locate the first click mine
 function isFarEnough(row1, col1, row2, col2) {
     if (Math.abs(row1 - row2) > 1) return true
@@ -202,7 +218,6 @@ noContext.addEventListener('contextmenu', e => {
         resetGame()
         startTimer()
     }
-
     // if the element.path still does'nt have the img in it (it is 9, else - 10)  
     if (e.path.length === 9) {
         var row = e.path[0].dataset.i
@@ -211,13 +226,12 @@ noContext.addEventListener('contextmenu', e => {
         var row = e.path[1].dataset.i
         var col = e.path[1].dataset.j
     }
-
     var cell = gBoard[row][col]
     if (cell.isShown) return
     if (cell.isMarked) { // if the cell is already marked un-flag it !!!
         cell.isMarked = false
         gGame.markedCount--
-    } else if (gGame.markedCount < gLevel.MINES) {
+    } else if (gGame.markedCount < gLevel.MINES - (3 - gGame.lives)) {
         cell.isMarked = true
         gGame.markedCount++
     }
@@ -227,80 +241,99 @@ noContext.addEventListener('contextmenu', e => {
 })
 
 
-
 // TODO:
 // SMILEY
-// WIN/LOSE SOUND
 // RECORDING RECORDS
 // RECORDING STAGES AND UNDO-ING THEM
-// KUCJY TOUCH
-// 3 HINTS
 // BUT FIRST : THE BASIC FUNCTIONS ABOVE
 
 
-
-// STILL NEED TO THINK ABOUT IT
+// STILL NEED TO THINK ABOUT IT - i am not happy with it... something with the counts of flags and shown...
 function isGameOver() {
-    if ((gGame.shownCount + gGame.lives - 3) === gBoard.length ** 2) {
+    if (gGame.markedCount + gGame.shownCount === gBoard.length ** 2) {
+        // console.log('gGame.markedCount: ',gGame.markedCount)
+        // console.log('gGame.shownCount: ',gGame.shownCount)
+        // console.log('3-gGmae.lives: ',3-gGame.lives)
+        // console.log('gBoard.length**2: ',gBoard.length**2)      
         gameOver('win')
         return true
     }
     return false
 }
 
-// STILL NEED TO THINK ABOUT HOW TO MAKE IT RECURSIVE
-// exposes the cells around the selected cell
-function showNegs(row, col) {
-    console.log('i am in a loop in showNegs: 1 ')
-    console.log('gBoard[row][col]: row, col, ', gBoard[row][col], row, col)
+// called from button - runs showHint to expose the cells
+function getHint() {  //WORKS
+    if (!gGame.isOn || gGame.hints <= 0) return
+    gHint = true
+}
 
-    if (gBoard[row][col].minesAroundCount > 0) return
+// exposes cells around the clicked cell for 1 sec (defined in 'rightCellClicked function - which is not a function HEHEH)
+function showHint(row, col, show = true) { //ALMOST WORKS - but cells that were already shown, become unShown - FIX!
     for (var i = row - 1; i <= row + 1; i++) {
-        console.log('i am in a loop in showNegs: 2 ')
         if (i < 0 || i > gBoard.length - 1) continue;
-        console.log('i am in a loop in showNegs: 3 ')
         for (var j = col - 1; j <= col + 1; j++) {
-            console.log('i am in a loop in showNegs: 4 ')
             if (j < 0 || j > gBoard.length - 1) continue;
-            if (i === row && j === col) continue;
-            console.log('i am in a loop in showNegs: 5 ')
-            gBoard[i][j].isShown = true
-            renderBoard(gBoard)
-            // showNegs(i,j)
-            if (!(gBoard[i][j].minesAroundCount)) {
-                console.log('i am in a loop in showNegs: 6 ')
-                // showNegs(i,j)
+            if (show) {
+                gBoard[i][j].isShown = true
+                renderBoard(gBoard)
+            } else {
+                gBoard[i][j].isShown = false
+                renderBoard(gBoard)
             }
         }
     }
+    gHint = false
+}
 
+function safeClick() {
+    if (!gGame.isOn || !gGame.safeClicks) return // if game did not start (first cellClicked) or no more safe clicks left
+    // find randoM number in the matrix, check if the cell is not shown and not marked, and mark it with flashing color
+    var emptyCells = getNumsArray(gBoard.length ** 2 - 1)
+    for (var i = 0; i < gLevel.MINES; i++) {
+        var num = drawRandNum(emptyCells)
+        var posI = Math.floor(num / gBoard.length)
+        var posJ = num % gBoard.length
+        // if it's a safe cell, then flash it for a sec
+        if (!gBoard[posI][posJ].isMine && !gBoard[posI][posJ].isShown && !gBoard[posI][posJ].isMarked) {
+            var getInterval = setInterval(flashCell, 100, posI, posJ)
+            setTimeout(clearInterval, 1000, getInterval)
+            gGame.safeClicks--
+            return
+        } else continue
+    }
+}
+
+function flashCell(row, col) {
+    // if it does'nt have the flash key (first time, or if it is in true, than make it false)
+    if (!gBoard[row][col].hasOwnProperty('flash')) {
+        gBoard[row][col].flash = true
+        renderBoard(gBoard)
+    } else {
+        delete gBoard[row][col].flash
+        renderBoard(gBoard)
+    }
+}
+
+// STILL NEED TO THINK ABOUT HOW TO MAKE IT RECURSIVE, but it is functioning basically
+// exposes the cells around the selected cell
+function showNegs(row, col) {
+    if (gBoard[row][col].minesAroundCount > 0) return
+    for (var i = row - 1; i <= row + 1; i++) {
+        if (i < 0 || i > gBoard.length - 1) continue;
+        for (var j = col - 1; j <= col + 1; j++) {
+            if (j < 0 || j > gBoard.length - 1) continue;
+            if (i === row && j === col) continue;
+            if (!gBoard[i][j].isShown) {
+                gBoard[i][j].isShown = true
+                gGame.shownCount++
+                renderBoard(gBoard)
+            }
+        }
+    }
     return
 }
 
-// STILL NEED TO THINK ABOUT IT
-function undo() {
-    console.log('gStages[0]: ', gStages[0])
-    console.log('gStages[1]: ', gStages[1])
-
-
-
-    var lastBoard = copyMat(gStages.pop())
-    renderBoard(lastBoard)
-}
-
-//Copy mat -> IT DOES'NT WORK FOR COPYING A WHOLE ARRAY WITH OBJECT IN IT. LET'S FIND BETTER SOLUTION
-function copyMat(mat) {
-    var newMat = [];
-    for (var i = 0; i < mat.length; i++) {
-        newMat[i] = [];
-        for (var j = 0; j < mat[0].length; j++) {
-            newMat[i][j] = mat[i][j];
-        }
-    }
-    return newMat;
-}
-
-// renders on screen how many flags are left ##### FIX IT TO MINES
+// renders on screen how many MINES are left 
 function showFlagsLeft() {
     var elFlagsLeft = document.querySelector('.flagsLeftIndicator span')
     var flagsLeft = gLevel.MINES - gGame.markedCount
@@ -313,11 +346,10 @@ function startTimer() {
     if (gGame.isOn) {
         gStartGameTime = Date.now()                 // timer
         gTimerInterval = setInterval(runTimer, 500)
-
     }
 }
 
-// creates the timer  *** FIX THE SECONDS 0-10 IT SHOWS ONE DIGIT ***********************FIX FIX FIX ****
+// creates the timer  
 function runTimer() {
     var totalGameTime = getGameTime()
     var seconds = Math.floor(totalGameTime / 1000)
@@ -331,6 +363,7 @@ function runTimer() {
         seconds = `0${seconds}`
     } else if (seconds > 59) {
         seconds = (seconds % 60)
+        seconds = (seconds < 10) ? `0${seconds}` : seconds
     }
     var totalGameTimeString = `${minutes}:${seconds}`
     var elTimer = document.querySelector('.timer')
@@ -353,28 +386,24 @@ function getGameTime() {
 }
 
 
-
-
-
-
-
-
-
-
-
 // shows the right modal (win / lose) and also presents a restart button
 function gameOver(state) {
-    (state === 'win') ? showModal('win') : showModal('lose')
+    if (state === 'win') {
+        showModal('win')
+        playSound('media/win.mp3')
+
+    } else {
+        showModal('lose')
+        playSound('media/lose.mp3')
+    }
     clearInterval(gTimerInterval)
     gGame.isOn = false
-
-
 }
 
-
-//   UTILITY FUNCTIONS 
-
-
+function playSound(file) {
+    var audio = new Audio(file)
+    audio.play()
+}
 
 // Get an array of numbers (from 0 to num, ordered) 
 function getNumsArray(num) {
@@ -391,6 +420,14 @@ function drawRandNum(array) {
     var num = array[idx]
     array.splice(idx, 1)
     return num
+}
+
+//The maximum is exclusive and the minimum is inclusive
+// get Random number
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min) + min);
 }
 
 function showModal(state) {

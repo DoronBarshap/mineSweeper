@@ -6,19 +6,26 @@
     box-sizing: border-box;
     justify-content: center;
     align-items: center;
+    background-color: rgba(255, 127, 80, 0.281);
 }
-h1{
+.title{
   color: rgb(20, 61, 245);
   margin-top: 200px;
   text-align: center;
+  margin: auto;
+  min-width: 650px
 }
 
 .indicatorsLine{
   background-color: cyan;
   height: 100px;
-  width: 600px;
+  width: 580px;
   margin-left: 35%;
   padding: 10px;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  margin: auto;
+  min-width: 580px;
 
 }
 .flagsLeftIndicator{
@@ -30,20 +37,25 @@ h1{
   font-weight: 600;
 }
 .footer{
+  border-bottom-right-radius: 20px;
+  border-bottom-left-radius: 20px;
   background-color: cyan;
   height: 100px;
-  width: 600px;
-  margin-left: 35%;
+  width: 578px;
   padding: 10px;
+  margin-left: 35%;
+  margin: auto;
+  margin-top: 20px;
 }
-.lives, .hints{
+.lives {
   padding: 25px;
   border-radius: 10px;
   font-size: x-large;
-  font-weight: 600;
+  font-weight: 700;
+  
 }
 .time{
-  background-color: rgb(255, 0, 170);
+  background-color: rgb(245, 177, 222);
   padding: 25px;
   border-radius: 10px;
   font-size: x-large;
@@ -55,6 +67,7 @@ h1{
   border-radius: 10px;
   font-size: x-large;
   font-weight: 600;
+  
 }
 .restart:hover{
   cursor: pointer;
@@ -62,11 +75,16 @@ h1{
 .board{
   width: 600px;
   height: 600px;
-  border: solid 2px blue;
+  border: solid 2px rgb(253, 250, 250);
   margin-left: 35%;
+  margin: auto;
   /* border-collapse: collapse; */
-}
+  /* text-align: center; */
 
+}
+.chooseLevel{
+  min-width: 600px;
+}
 td{
   box-sizing: border-box;
   table-layout: fixed;
@@ -79,6 +97,9 @@ td:hover{
   background-color: rgb(192, 168, 192);
   cursor: pointer;
 }
+.flash{
+  background-color: coral;
+}
 img{
   object-fit: contain;
   background-color: darkblue;
@@ -87,11 +108,11 @@ img{
 .marked{
   background-color: rgb(255, 255, 255);
 }
-/*
+
 .mine{
   background-color: blueviolet;
 }
-*/
+
 .shown{
   background-color: rgb(250, 250, 250);
   color: blue
@@ -99,17 +120,21 @@ img{
 .modal{
   width: 500px;
   height: 500px;
-  background-color: lightcoral;
+  background-color: rgba(243, 62, 62, 0.301);
   visibility: hidden;
   position: absolute;
-  top: 350px;
-  left: 500px;
-  color: white;
+  top: 30%;
+  left: 30%;
+
+  color: white ;
   font-weight: 700;
 } 
 button{
   background-color: rgb(245, 151, 151);
   border-radius: 8px;
-  width: 100px;
-  height: 30px;
+  /* width: 100px;
+  height: 30px; */
+  padding: 15px;
+  font-weight: 700;
+  font-size: larger;
 } 
