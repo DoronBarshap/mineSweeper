@@ -14,7 +14,7 @@ var gTimerInterval
 var gBoard = []
 var gLevel = {
     SIZE: 4,
-    MINES: 3
+    MINES: 2
 }
 var gGame = {
     isOn: false,
