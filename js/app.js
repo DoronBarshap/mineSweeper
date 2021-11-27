@@ -3,8 +3,8 @@
 // Global variables
 
 var gHint = false
-const WORRIEDSMILEY = `worriedSmiley.jpg`
-const SADLEY = `sadley.jpg`
+// const WORRIEDSMILEY = `worriedSmiley.jpg`
+// const SADLEY = `sadley.jpg`
 const SMILEY = `simley.jpg`
 const MARKED = `flag.jpg`
 const MINE = `landMine.jpg`
@@ -34,6 +34,8 @@ function initGame() {
     resetGame()           // zeroes all the global variables
     updateBoard()          // updates the model matrix about neighboring mines
     renderBoard(gBoard)    // renders covered board
+    renderHints()
+    rendersSafeClicks()
 }
 
 // Create square mat
@@ -145,7 +147,7 @@ function cellClicked(elCell, i, j) {
     if (gBoard[i][j].isShown || gBoard[i][j].isMarked) return // if it is already marked or shown nothing to do here
     if (gHint) { // if the hint state is ON show the cell and negs for few milisecs
         showHint(i, j, true)
-        gGame.hints--
+
         setTimeout(showHint, 1000, i, j, false)
         gHint = false
         return
@@ -264,7 +266,12 @@ function isGameOver() {
 // called from button - runs showHint to expose the cells
 function getHint() {  //WORKS
     if (!gGame.isOn || gGame.hints <= 0) return
+    var hintsLamp = document.querySelector('.hints')
+    hintsLamp.style.backgroundColor = 'yellow'
+
+    gGame.hints--
     gHint = true
+    renderHints()
 }
 
 // exposes cells around the clicked cell for 1 sec (defined in 'rightCellClicked function - which is not a function HEHEH)
@@ -283,11 +290,14 @@ function showHint(row, col, show = true) { //ALMOST WORKS - but cells that were 
         }
     }
     gHint = false
+    var hintsLamp = document.querySelector('.hints')
+    hintsLamp.style.backgroundColor = 'rgb(245, 151, 151)'
 }
 
 function safeClick() {
     if (!gGame.isOn || !gGame.safeClicks) return // if game did not start (first cellClicked) or no more safe clicks left
     // find randoM number in the matrix, check if the cell is not shown and not marked, and mark it with flashing color
+    rendersSafeClicks()
     var emptyCells = getNumsArray(gBoard.length ** 2 - 1)
     for (var i = 0; i < gLevel.MINES; i++) {
         var num = drawRandNum(emptyCells)
@@ -298,6 +308,7 @@ function safeClick() {
             var getInterval = setInterval(flashCell, 100, posI, posJ)
             setTimeout(clearInterval, 1000, getInterval)
             gGame.safeClicks--
+            rendersSafeClicks()
             return
         } else continue
     }
@@ -339,6 +350,23 @@ function showFlagsLeft() {
     var flagsLeft = gLevel.MINES - gGame.markedCount
     elFlagsLeft.innerText = flagsLeft
 }
+
+// renders on screen how many MINES are left 
+function renderHints() {
+    var elHints = document.querySelector('.hints span')
+    var hints = gGame.hints
+    elHints.innerText = hints
+
+}
+
+// renders on screen how many MINES are left 
+function rendersSafeClicks() {
+    var elSafeClicks = document.querySelector('.safeClick span')
+    var safeClicks = gGame.safeClicks
+    elSafeClicks.innerText = safeClicks
+
+}
+
 
 // timer functions // STILL NEED TO THINK ABOUT HOW TO MAKE IT MORE EFFICIENT
 
